@@ -1,24 +1,24 @@
-# syntax=docker/dockerfile:1.4
+# Use the official Python image from the Docker Hub
+FROM python:3.9-slim
 
-FROM --platform=$BUILDPLATFORM python:3.7-alpine AS builder
+# Set environment variables to prevent Python from writing .pyc files and to buffer stdout and stderr
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set the working directory inside the Docker image
+WORKDIR /app
+
+# Copy the requirements file to the working directory
+COPY requirements.txt /app/
+
+# Install dependencies
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# Copy the Django project files into the Docker image
+COPY . /app/
+
+# Expose the port on which Django will run
 EXPOSE 8000
-WORKDIR /app 
-COPY requirements.txt /app
-RUN pip3 install -r requirements.txt --no-cache-dir
-COPY . /app 
-ENTRYPOINT ["python3"] 
-CMD ["manage.py", "runserver", "0.0.0.0:8000"]
 
-FROM builder as dev-envs
-RUN <<EOF
-apk update
-apk add git
-EOF
-
-RUN <<EOF
-addgroup -S docker
-adduser -S --shell /bin/bash --ingroup docker vscode
-EOF
-# install Docker tools (cli, buildx, compose)
-COPY --from=gloursdocker/docker / /
-CMD ["manage.py", "runserver", "0.0.0.0:8000"]
+# Run Django's development server
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
